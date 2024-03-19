@@ -141,7 +141,7 @@ public void actionPerformed(ActionEvent e) {
 			//for loop for each job.
 			
 			String subString = "";
-			SQL.sendQuery(test, company);
+			SQL.runPro(test, company);
 			try {
 				 jobPrice 	=		SQL.getPrice(test, company);
 				 matlcost 	=		SQL.getMatlCost(test, company);
@@ -270,7 +270,7 @@ public void actionPerformed(ActionEvent e) {
 				
 				test = lines[q];
 				String subString = "";
-				SQL.sendQuery(test, company);
+				SQL.runPro(test, company);
 				boolean shipped = SQL.getShipped(test, company);
 
 				try {
@@ -401,7 +401,7 @@ public void actionPerformed(ActionEvent e) {
 		multhtml.append("</html>");
 		label.setText(multhtml.toString());
 		System.out.println(multhtml.toString());
-		
+		System.out.println("refactored");
 	}
 	
 	

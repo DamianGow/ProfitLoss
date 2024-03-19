@@ -18,7 +18,25 @@ public class sql {
     int overone = 0;
     double totLabor = 0;
     
-    public ArrayList sendQuery(String jobnum, String company) throws SQLException {
+    
+    
+    public void runPro(String jobnum, String company) throws SQLException {
+    	//sendquery gives opcodes, employees, qty, labordtl
+    	ListContainer listCont = sendQuery(jobnum, company);
+    	System.out.println(listCont.opCodes);
+    	//start for loop.
+    	
+    	List<data> opData = retrieveTimes(jobnum, company, listCont.opCodes, listCont.employees, listCont.qty, listCont.laborDtl);
+    	for (int i = 0; i < opData.size(); i++) {
+    		System.out.println(opData.size() + "size");
+    		Overlap over = overlap(opData, company);
+    		data temp = opData.get(i);
+    		double opTime = getTotalTime(temp, over.in, over.out);
+    		setOpValues(temp, opTime, company);
+    	}
+    }
+    
+    public ListContainer sendQuery(String jobnum, String company) throws SQLException {
 ArrayList result = new ArrayList<>();
 	Connection connection = null;
 	Statement stmt = null;
@@ -27,18 +45,17 @@ ArrayList result = new ArrayList<>();
 	this.totLabor = 0;
 	ArrayList opcodes = new ArrayList<>();
 	ArrayList employees = new ArrayList<>();
-	ArrayList overlapIn = new ArrayList<>();
-	ArrayList overlapOut = new ArrayList<>();
 	ArrayList times = new ArrayList<>();
 	ArrayList qty = new ArrayList<>();
 	ArrayList labordtl = new ArrayList<>();
 	ArrayList opCost = new ArrayList<>();
-	List<data> dataList = new ArrayList<>();
+
 
 	try {
 		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 		connection = DriverManager.getConnection(url);
 		stmt = connection.createStatement();
+
 		
 		rs = stmt.executeQuery("Select labordtlseq, laborqty,  opcode, employeenum, burdenrate from dangerzone.erp.labordtl where jobnum = '" + jobnum + "' and company = '" + company + "' and laborcollection = 1 and opcode <> 'wc15' order by oprseq asc");
 				
@@ -62,6 +79,8 @@ ArrayList result = new ArrayList<>();
 		
 			
 		}
+		ListContainer listCont = new ListContainer(qty, employees, labordtl, opcodes);
+		return listCont;
 	} catch (SQLException e1) {
 		// TODO Auto-generated catch block
 		e1.printStackTrace();
@@ -69,11 +88,18 @@ ArrayList result = new ArrayList<>();
 		// TODO Auto-generated catch block
 		e1.printStackTrace();
 	}
+	return null;
 
-	//break one
-	
+    }
+    
+    public List<data> retrieveTimes(String jobnum, String company, ArrayList opcodes, ArrayList employees, ArrayList qty, ArrayList labordtl) throws SQLException {
+	//break one pass employees, qty, and labordtl.
+    	List<data> dataList = new ArrayList<>();
 for (int i = 0; i < opcodes.size(); i++) { //iterate through all opcodes/labortransactions in this job and get the times/dates ran
-	rs = stmt.executeQuery("Select burdenrate, opcode, employeenum, laborqty, payrolldate, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where jobnum = '" + jobnum + "' and company = '" + company + "' and employeenum = '" + employees.get(i)+ "' and laborcollection = 1 and laborqty = " + qty.get(i) + " and labordtlseq = " + labordtl.get(i) );
+	
+	Connection connection = DriverManager.getConnection(url);
+	Statement stmt = connection.createStatement();
+	ResultSet rs = stmt.executeQuery("Select burdenrate, opcode, employeenum, laborqty, payrolldate, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where jobnum = '" + jobnum + "' and company = '" + company + "' and employeenum = '" + employees.get(i)+ "' and laborcollection = 1 and laborqty = " + qty.get(i) + " and labordtlseq = " + labordtl.get(i) );
 	System.out.println("Select burdenrate, opcode, employeenum, laborqty, payrolldate, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where jobnum = '" + jobnum + "' and company = '" + company + "' and employeenum = '" + employees.get(i)+ "' and laborcollection = 1 and laborqty = " + qty.get(i) );
 	while (rs.next()) {
 		data curr = new data();
@@ -104,18 +130,24 @@ for (int i = 0; i < opcodes.size(); i++) { //iterate through all opcodes/labortr
 
 
 }
+return dataList;
+    }
 
-//break two
 
+//break two pass datalist, move overla[p out and in down here
+public Overlap overlap(List<data> dataList, String company) throws SQLException {
+ArrayList overlapIn = new ArrayList<>();
+ArrayList overlapOut = new ArrayList<>();
 for (int i = 0; i < dataList.size(); i++) {
-	data temp = dataList.get(i);
+	data temp = (data) dataList.get(i);
 	double compStart = Double.parseDouble(temp.Start);
 	double compEnd = Double.parseDouble(temp.End);
-	double totalSeconds = 0;
 	if (compStart < compEnd) { //dayshit
 
 	//get all times from that employee to find overlap.
-	rs = stmt.executeQuery("Select jobnum, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "' and ((clockintime >= " + temp.Start + " and clockintime <= " + temp.End + ") or (clockouttime >= " + temp.Start + " and clockintime <= " + temp.Start + ") or (clockintime >= " + temp.Start + " and clockintime < " + temp.End + " and clockouttime >= " + temp.End + "))");
+	Connection connection = DriverManager.getConnection(url);
+	Statement stmt = connection.createStatement();
+	ResultSet rs = stmt.executeQuery("Select jobnum, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "' and ((clockintime >= " + temp.Start + " and clockintime <= " + temp.End + ") or (clockouttime >= " + temp.Start + " and clockintime <= " + temp.Start + ") or (clockintime >= " + temp.Start + " and clockintime < " + temp.End + " and clockouttime >= " + temp.End + "))");
 	while (rs.next()) {
 		if(!rs.getString("jobnum").equals("")) {
 			 String data = rs.getString("dspclockintime");
@@ -129,7 +161,9 @@ for (int i = 0; i < dataList.size(); i++) {
 	} else {//night shift coverage
 		
 		//get all times from that employee to find overlap.
-		rs = stmt.executeQuery("Select jobnum, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "'");
+		Connection connection = DriverManager.getConnection(url);
+		Statement stmt = connection.createStatement();
+		ResultSet rs = stmt.executeQuery("Select jobnum, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "'");
 		while (rs.next()) {
 			if(!rs.getString("jobnum").equals("")) {
 				double excessnew = 0;
@@ -160,11 +194,16 @@ for (int i = 0; i < dataList.size(); i++) {
 		}
 		
 		
-		
 	}
+}
+Overlap overlap = new Overlap(overlapIn, overlapOut);
+return overlap;
+}
+	
 
-//break three	 pass temp object
-
+public double getTotalTime(data temp, ArrayList overlapIn, ArrayList overlapOut) {
+//break three	 pass temp(data not final) object, overlap out and in
+	double totalSeconds = 0;
 	String start = temp.Start;
 	String end = temp.End;
 	
@@ -184,7 +223,6 @@ for (int i = 0; i < dataList.size(); i++) {
 		 
 	 }
 	
-	//break 4??? maybne
 	for (double q = startTime; q <= endTime;) {
 		
 		
@@ -222,11 +260,12 @@ for (int i = 0; i < dataList.size(); i++) {
 			q += 0.4;
 		}
 	}
-	
-	
+	return totalSeconds;
+}
 	
 	//break 5???
-	
+public void setOpValues(data temp, double totalSeconds, String company) throws SQLException {
+	//pass total seconds, and data temp.
 	finalData tempfinal = new finalData();
 	tempfinal.op = temp.op;
 	if (overone == 2) {
@@ -245,8 +284,6 @@ for (int i = 0; i < dataList.size(); i++) {
 	bd = new BigDecimal(tempx).setScale(2, RoundingMode.HALF_UP);
 	tempfinal.opcost = bd.doubleValue();
 
-	overlapIn.clear();
-	overlapOut.clear();
 	totalcost += tempfinal.opcost;
 	
 	
@@ -263,12 +300,14 @@ for (int i = 0; i < dataList.size(); i++) {
 	
 
 	finaldataList.add(tempfinal);
-	
+
 	
 	//break six
 	
 	double empcost = 1;
-	rs = stmt.executeQuery("Select * from dangerzone.erp.empbasic where empid = '" + employees.get(i) + "' and company = '" + company + "'");
+	Connection connection = DriverManager.getConnection(url);
+	Statement stmt = connection.createStatement();
+	ResultSet rs = stmt.executeQuery("Select * from dangerzone.erp.empbasic where empid = '" + temp.empID + "' and company = '" + company + "'");
 	while (rs.next()) {
 		  empcost = rs.getDouble("laborrate");
 	}
@@ -276,18 +315,10 @@ for (int i = 0; i < dataList.size(); i++) {
 	
 	
 	totLabor += (tempfinal.opTime/60)*empcost;
-	System.out.println("adding labor :)");
 	
 	
 }
 
-
-
-return result;
-
-
-
-    }
     
     public double getTotal() {
     	BigDecimal bd = new BigDecimal(totalcost).setScale(2, RoundingMode.HALF_UP);	
