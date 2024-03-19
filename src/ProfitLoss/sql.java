@@ -70,7 +70,7 @@ ArrayList result = new ArrayList<>();
 		e1.printStackTrace();
 	}
 
-	
+	//break one
 	
 for (int i = 0; i < opcodes.size(); i++) { //iterate through all opcodes/labortransactions in this job and get the times/dates ran
 	rs = stmt.executeQuery("Select burdenrate, opcode, employeenum, laborqty, payrolldate, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where jobnum = '" + jobnum + "' and company = '" + company + "' and employeenum = '" + employees.get(i)+ "' and laborcollection = 1 and laborqty = " + qty.get(i) + " and labordtlseq = " + labordtl.get(i) );
@@ -112,11 +112,10 @@ for (int i = 0; i < dataList.size(); i++) {
 	double compStart = Double.parseDouble(temp.Start);
 	double compEnd = Double.parseDouble(temp.End);
 	double totalSeconds = 0;
-	if (compStart < compEnd) {
+	if (compStart < compEnd) { //dayshit
 
 	//get all times from that employee to find overlap.
 	rs = stmt.executeQuery("Select jobnum, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "' and ((clockintime >= " + temp.Start + " and clockintime <= " + temp.End + ") or (clockouttime >= " + temp.Start + " and clockintime <= " + temp.Start + ") or (clockintime >= " + temp.Start + " and clockintime < " + temp.End + " and clockouttime >= " + temp.End + "))");
-	System.out.println("Select jobnum, clockintime, clockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "' and ((clockintime >= " + temp.Start + " and clockintime <= " + temp.End + ") or (clockouttime >= " + temp.Start + " and clockintime <= " + temp.Start + ") or (clockintime >= " + temp.Start + " and clockintime < " + temp.End + " and clockouttime >= " + temp.End + "))");
 	while (rs.next()) {
 		if(!rs.getString("jobnum").equals("")) {
 			 String data = rs.getString("dspclockintime");
@@ -131,7 +130,6 @@ for (int i = 0; i < dataList.size(); i++) {
 		
 		//get all times from that employee to find overlap.
 		rs = stmt.executeQuery("Select jobnum, dspclockintime, dspclockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "'");
-		System.out.println("Select jobnum, clockintime, clockouttime from dangerzone.erp.labordtl where company = '" + company + "' and employeenum = '" + temp.empID + "' and payrolldate = '"+temp.Payroll + "'");
 		while (rs.next()) {
 			if(!rs.getString("jobnum").equals("")) {
 				double excessnew = 0;
@@ -165,13 +163,10 @@ for (int i = 0; i < dataList.size(); i++) {
 		
 	}
 
-	
+//break three	 pass temp object
 
 	String start = temp.Start;
 	String end = temp.End;
-	System.out.println("Start end");
-	System.out.println(start);
-	System.out.println(end);
 	
 	Double startTime = Double.parseDouble(start);
 	Double endTime = Double.parseDouble(end);
@@ -189,10 +184,7 @@ for (int i = 0; i < dataList.size(); i++) {
 		 
 	 }
 	
-		System.out.println(start);
-		System.out.println(end);
-	
-	
+	//break 4??? maybne
 	for (double q = startTime; q <= endTime;) {
 		
 		
@@ -231,6 +223,10 @@ for (int i = 0; i < dataList.size(); i++) {
 		}
 	}
 	
+	
+	
+	//break 5???
+	
 	finalData tempfinal = new finalData();
 	tempfinal.op = temp.op;
 	if (overone == 2) {
@@ -268,9 +264,11 @@ for (int i = 0; i < dataList.size(); i++) {
 
 	finaldataList.add(tempfinal);
 	
+	
+	//break six
+	
 	double empcost = 1;
 	rs = stmt.executeQuery("Select * from dangerzone.erp.empbasic where empid = '" + employees.get(i) + "' and company = '" + company + "'");
-	System.out.println("Select * from dangerzone.erp.jobmtl where jobnum = '" + jobnum + "' and company = '" + company + "'");
 	while (rs.next()) {
 		  empcost = rs.getDouble("laborrate");
 	}
@@ -282,45 +280,6 @@ for (int i = 0; i < dataList.size(); i++) {
 	
 	
 }
-
-
-
-
-//get prices
-
-
-
-
-for (int i = 0; i < times.size(); i++) {
-	result.add(opcodes.get(i));
-	
-
-	Double rounddouble = (Double) times.get(i);
-	BigDecimal bd = new BigDecimal(rounddouble).setScale(2, RoundingMode.HALF_UP);
-
-	
-	result.add(bd);
-	rounddouble = (Double) opCost.get(i);
-	bd = new BigDecimal(rounddouble).setScale(2, RoundingMode.HALF_UP);
-	result.add(bd);
-	
-	String round = (String) qty.get(i);
-	rounddouble = Double.parseDouble(round);
-	bd = new BigDecimal(rounddouble).setScale(2, RoundingMode.HALF_UP);
-	result.add(bd);
-	
-	Double timeRound = (Double) times.get(i);
-	Double timeperpart = timeRound/rounddouble;
-	bd = new BigDecimal(timeperpart).setScale(2, RoundingMode.HALF_UP);
-	
-	result.add(bd);
-
-
-}
-
-
-
-
 
 
 
